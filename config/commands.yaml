@@ -1,0 +1,75 @@
+# Command mappings - maps intents to JSON commands
+# Each command defines the action to send to the air-borne console
+
+stop_tracking:
+  command_type: "tracking"
+  parameters:
+    action: "stop"
+    immediate: "true"
+  description: "Stop tracking the target"
+
+start_tracking:
+  command_type: "tracking"
+  parameters:
+    action: "start"
+    mode: "auto"
+  description: "Start tracking the target"
+
+reset_system:
+  command_type: "system"
+  parameters:
+    action: "reset"
+    preserve_config: "true"
+  description: "Reset system to default state"
+
+emergency_stop:
+  command_type: "emergency"
+  parameters:
+    action: "shutdown"
+    save_state: "true"
+    priority: "critical"
+  description: "Emergency system shutdown"
+
+increase_speed:
+  command_type: "control"
+  parameters:
+    action: "adjust_speed"
+    adjustment: "increase"
+    step: "10"
+  description: "Increase operational speed"
+
+decrease_speed:
+  command_type: "control"
+  parameters:
+    action: "adjust_speed"
+    adjustment: "decrease"
+    step: "10"
+  description: "Decrease operational speed"
+
+get_status:
+  command_type: "query"
+  parameters:
+    action: "get_status"
+    include_telemetry: "true"
+  description: "Request current system status"
+
+change_altitude:
+  command_type: "movement"
+  parameters:
+    action: "adjust_altitude"
+    mode: "relative"
+  description: "Adjust altitude level"
+
+lock_target:
+  command_type: "targeting"
+  parameters:
+    action: "lock"
+    target_mode: "active"
+  description: "Lock tracking onto target"
+
+release_target:
+  command_type: "targeting"
+  parameters:
+    action: "release"
+    clean_exit: "true"
+  description: "Release target lock"

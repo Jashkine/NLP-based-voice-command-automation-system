@@ -1,0 +1,104 @@
+# Intent definitions for voice command system
+# Each intent maps voice patterns to actions
+
+stop_tracking:
+  patterns:
+    - "stop tracking"
+    - "can you stop tracking"
+    - "please stop tracking"
+    - "stop the tracking"
+    - "halt tracking"
+  actions:
+    description: "Stop tracking the air-borne system"
+
+start_tracking:
+  patterns:
+    - "start tracking"
+    - "begin tracking"
+    - "start tracking now"
+    - "please start tracking"
+    - "resume tracking"
+  actions:
+    description: "Start tracking the air-borne system"
+
+reset_system:
+  patterns:
+    - "reset system"
+    - "system reset"
+    - "please reset"
+    - "reset everything"
+    - "hard reset"
+  actions:
+    description: "Reset the system to default state"
+
+emergency_stop:
+  patterns:
+    - "emergency stop"
+    - "emergency"
+    - "stop immediately"
+    - "kill engines"
+    - "mayday"
+  actions:
+    priority: "critical"
+    description: "Immediate system shutdown"
+
+increase_speed:
+  patterns:
+    - "increase speed"
+    - "speed up"
+    - "go faster"
+    - "accelerate"
+    - "full throttle"
+  actions:
+    parameter: "speed"
+    description: "Increase system speed"
+
+decrease_speed:
+  patterns:
+    - "decrease speed"
+    - "slow down"
+    - "reduce speed"
+    - "slower"
+    - "cut throttle"
+  actions:
+    parameter: "speed"
+    description: "Decrease system speed"
+
+get_status:
+  patterns:
+    - "what is the status"
+    - "status report"
+    - "give me the status"
+    - "status check"
+    - "how are we"
+  actions:
+    description: "Get current system status"
+
+change_altitude:
+  patterns:
+    - "change altitude"
+    - "increase altitude"
+    - "decrease altitude"
+    - "climb"
+    - "descend"
+  actions:
+    parameter: "altitude"
+    description: "Adjust system altitude"
+
+lock_target:
+  patterns:
+    - "lock target"
+    - "acquire target"
+    - "lock on"
+    - "lock the target"
+  actions:
+    description: "Lock onto the current target"
+
+release_target:
+  patterns:
+    - "release target"
+    - "unlock target"
+    - "release"
+    - "lose the lock"
+  actions:
+    description: "Release the locked target"
