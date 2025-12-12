@@ -2,7 +2,8 @@
 
 from typing import Dict, Optional, Tuple
 import numpy as np
-from transformers import pipeline, Pipeline
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 from loguru import logger
 
 from .config import NLUConfig, IntentPattern
@@ -20,47 +21,49 @@ class NLUEngine:
         """
         self.config = config or NLUConfig()
         self.intents_config = intents_config or {}
-        self.classifier = None
-        self._init_classifier()
+        self.vectorizer = TfidfVectorizer(lowercase=True, stop_words='english')
         self._build_intent_index()
-    
-    def _init_classifier(self) -> None:
-        """Initialize zero-shot classification pipeline."""
-        try:
-            logger.info(f"Loading NLU model: {self.config.model_name}")
-            # Using sentence-transformers based zero-shot classifier
-            self.classifier = pipeline(
-                "zero-shot-classification",
-                model="facebook/bart-large-mnli",
-                device=0 if self.config.device == "cuda" else -1
-            )
-            logger.info("NLU model loaded successfully")
-        except Exception as e:
-            logger.error(f"Failed to load NLU model: {e}")
-            # Fallback to sentiment analysis
-            logger.warning("Falling back to sentiment analysis")
-            self.classifier = pipeline(
-                "sentiment-analysis",
-                model=self.config.model_name,
-                device=0 if self.config.device == "cuda" else -1
-            )
     
     def _build_intent_index(self) -> None:
         """Build intent index from patterns."""
         self.intent_candidates = list(self.intents_config.keys())
+        
+        # Build pattern vectors for similarity matching
+        self.pattern_vectors = {}
+        if self.intent_candidates:
+            all_patterns = []
+            pattern_to_intent = {}
+            
+            for intent_name, intent_pattern in self.intents_config.items():
+                for pattern in intent_pattern.patterns:
+                    all_patterns.append(pattern)
+                    pattern_to_intent[len(all_patterns) - 1] = intent_name
+            
+            if all_patterns:
+                try:
+                    self.vectorizer.fit(all_patterns)
+                    for idx, pattern in enumerate(all_patterns):
+                        intent = pattern_to_intent[idx]
+                        if intent not in self.pattern_vectors:
+                            self.pattern_vectors[intent] = []
+                        vec = self.vectorizer.transform([pattern]).toarray()[0]
+                        self.pattern_vectors[intent].append(vec)
+                except Exception as e:
+                    logger.warning(f"Failed to build pattern vectors: {e}")
+        
         if not self.intent_candidates:
             logger.warning("No intents configured")
     
     def classify_intent(
         self,
         text: str,
-        use_zero_shot: bool = True
+        use_similarity: bool = True
     ) -> Tuple[str, float]:
-        """Classify intent from text.
+        """Classify intent from text using TF-IDF similarity.
         
         Args:
             text: Input text
-            use_zero_shot: Use zero-shot classification
+            use_similarity: Use similarity-based classification
         
         Returns:
             Tuple of (intent, confidence)
@@ -70,25 +73,38 @@ class NLUEngine:
             return "unknown", 0.0
         
         try:
-            if use_zero_shot and self.classifier:
-                result = self.classifier(
-                    text,
-                    self.intent_candidates,
-                    multi_class=False
-                )
-                intent = result["labels"][0]
-                confidence = result["scores"][0]
+            if use_similarity and self.pattern_vectors:
+                # Vectorize input text
+                try:
+                    input_vec = self.vectorizer.transform([text]).toarray()[0]
+                except Exception:
+                    # If text contains unknown words, use simpler matching
+                    return self._keyword_match(text)
+                
+                # Compare with each intent's patterns
+                best_intent = "unknown"
+                best_score = 0.0
+                
+                for intent_name in self.intent_candidates:
+                    if intent_name in self.pattern_vectors:
+                        for pattern_vec in self.pattern_vectors[intent_name]:
+                            similarity = cosine_similarity([input_vec], [pattern_vec])[0][0]
+                            if similarity > best_score:
+                                best_score = similarity
+                                best_intent = intent_name
+                
+                confidence = float(best_score)
             else:
                 # Fallback: simple keyword matching
-                intent, confidence = self._keyword_match(text)
+                best_intent, confidence = self._keyword_match(text)
             
             # Check against confidence threshold
             if confidence < self.config.confidence_threshold:
-                logger.warning(f"Low confidence ({confidence:.2f}) for intent: {intent}")
+                logger.warning(f"Low confidence ({confidence:.2f}) for intent: {best_intent}")
                 return "unknown", confidence
             
-            logger.info(f"Classified intent: {intent} (confidence: {confidence:.2f})")
-            return intent, float(confidence)
+            logger.info(f"Classified intent: {best_intent} (confidence: {confidence:.2f})")
+            return best_intent, confidence
             
         except Exception as e:
             logger.error(f"Intent classification failed: {e}")

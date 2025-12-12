@@ -1,17 +1,17 @@
-"""Automatic Speech Recognition (ASR) module using OpenAI Whisper."""
+"""Automatic Speech Recognition (ASR) module using lightweight libraries."""
 
 import io
 from pathlib import Path
 from typing import Optional
 import numpy as np
-import whisper
+import speech_recognition as sr
 from loguru import logger
 
 from .config import ASRConfig
 
 
 class ASREngine:
-    """Speech-to-text engine using OpenAI Whisper."""
+    """Speech-to-text engine using SpeechRecognition library."""
     
     def __init__(self, config: Optional[ASRConfig] = None):
         """Initialize ASR engine.
@@ -20,64 +20,54 @@ class ASREngine:
             config: ASR configuration
         """
         self.config = config or ASRConfig()
-        self.model = None
-        self._load_model()
-    
-    def _load_model(self) -> None:
-        """Load Whisper model."""
-        try:
-            logger.info(f"Loading Whisper model: {self.config.model_name}")
-            self.model = whisper.load_model(
-                self.config.model_name,
-                device=self.config.device
-            )
-            logger.info("Whisper model loaded successfully")
-        except Exception as e:
-            logger.error(f"Failed to load Whisper model: {e}")
-            raise
+        self.recognizer = sr.Recognizer()
+        logger.info("SpeechRecognition ASR engine initialized")
     
     def transcribe(
         self,
-        audio_input: np.ndarray | str | Path,
+        audio_input,
         language: Optional[str] = None
     ) -> str:
         """Transcribe audio to text.
         
         Args:
             audio_input: Audio data (numpy array), file path, or audio file path
-            language: Language code (defaults to config language)
+            language: Language code (e.g., 'en-US', 'en-GB')
         
         Returns:
             Transcribed text
         """
-        if self.model is None:
-            raise RuntimeError("ASR model not loaded")
-        
         language = language or self.config.language
         
         try:
             # Handle different input types
             if isinstance(audio_input, (str, Path)):
-                audio = whisper.load_audio(str(audio_input))
+                audio = self._load_audio_file(str(audio_input))
             else:
                 # Assume numpy array
-                audio = audio_input.astype(np.float32) / 32768.0
+                audio = audio_input.astype(np.float32)
+            
+            # Convert numpy array to AudioData
+            audio_data = sr.AudioData(
+                audio.tobytes(),
+                self.config.sample_rate,
+                2  # 2 bytes per sample
+            )
             
             logger.info(f"Transcribing audio (language: {language})")
             
-            result = self.model.transcribe(
-                audio,
-                language=language,
-                fp16=(self.config.precision == "float16"),
-                verbose=False
-            )
+            # Use Google Speech Recognition (free, no API key needed)
+            text = self.recognizer.recognize_google(audio_data, language=language)
             
-            text = result.get("text", "").strip()
-            confidence = result.get("segments", [{}])[0].get("confidence", 0.0) if result.get("segments") else 0.0
-            
-            logger.info(f"Transcription: {text} (confidence: {confidence:.2f})")
+            logger.info(f"Transcription: {text}")
             return text
             
+        except sr.RequestError as e:
+            logger.error(f"Speech Recognition API unavailable: {e}")
+            raise
+        except sr.UnknownValueError:
+            logger.warning("Audio could not be understood")
+            return ""
         except Exception as e:
             logger.error(f"Transcription failed: {e}")
             raise
@@ -93,10 +83,43 @@ class ASREngine:
             Transcribed text
         """
         return self.transcribe(audio_path, language)
+    
+    def _load_audio_file(self, file_path: str) -> np.ndarray:
+        """Load audio file using pydub.
+        
+        Args:
+            file_path: Path to audio file
+        
+        Returns:
+            Audio data as numpy array
+        """
+        try:
+            from pydub import AudioSegment
+            
+            # Auto-detect format from extension
+            audio = AudioSegment.from_file(file_path)
+            
+            # Convert to numpy array
+            samples = np.array(audio.get_array_of_samples())
+            
+            # Convert to 16-bit signed
+            if audio.channels == 2:
+                samples = samples.reshape((-1, 2))
+                samples = samples.mean(axis=1).astype(np.int16)
+            
+            # Normalize to -1.0 to 1.0
+            return samples.astype(np.float32) / 32768.0
+            
+        except ImportError:
+            logger.error("pydub not available. Install with: pip install pydub")
+            raise
+        except Exception as e:
+            logger.error(f"Failed to load audio file: {e}")
+            raise
 
 
 class MockASREngine:
-    """Mock ASR engine for testing without Whisper."""
+    """Mock ASR engine for testing without downloading models."""
     
     def __init__(self, config: Optional[ASRConfig] = None):
         """Initialize mock ASR engine."""

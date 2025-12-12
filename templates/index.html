@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Command Automation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .control-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-mic {
+            width: 50px;
+            height: 50px;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-mic:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-mic.recording {
+            background: #ff6b6b;
+            animation: pulse 1s infinite;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.6);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-command {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .btn-command:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-command:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-command:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-clear {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-clear:hover {
+            background: #d0d0d0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .status-badge.listening {
+            background: #ff6b6b;
+            color: white;
+            animation: pulse 1s infinite;
+        }
+
+        .status-badge.processing {
+            background: #ffd43b;
+            color: #333;
+            animation: pulse 1s infinite;
+        }
+
+        .status-badge.success {
+            background: #51cf66;
+            color: white;
+        }
+
+        .status-badge.error {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .output-section {
+            margin-top: 30px;
+        }
+
+        .output-section h2 {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .json-output {
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            color: #333;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.5;
+        }
+
+        .json-output.empty {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .copy-btn:hover {
+            background: #764ba2;
+        }
+
+        .example-commands {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .example-commands h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .example-commands ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .example-commands li {
+            padding: 5px 0;
+            color: #555;
+        }
+
+        .example-commands li:before {
+            content: "→ ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .error-message {
+            background: #ffe0e0;
+            color: #c92a2a;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            background: #d3f9d8;
+            color: #2b8a3e;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .btn-command,
+            .btn-clear {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 Voice Command Automation</h1>
+            <p>Convert voice commands to JSON output</p>
+        </div>
+
+        <div class="content">
+            <!-- Control Section -->
+            <div class="control-section">
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="commandInput" 
+                        placeholder="Enter voice command or click microphone to speak..."
+                        autocomplete="off"
+                    >
+                    <button class="btn-mic" id="micBtn" onclick="toggleMicrophone()">
+                        🎤
+                    </button>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-command" id="commandBtn" onclick="processCommand()">
+                        ▶ Process Command
+                    </button>
+                    <button class="btn-clear" id="clearBtn" onclick="clearOutput()">
+                        Clear
+                    </button>
+                </div>
+
+                <div id="statusBadge" class="status-badge" style="display: none;"></div>
+                <div id="errorMessage" class="error-message"></div>
+                <div id="successMessage" class="success-message"></div>
+            </div>
+
+            <!-- Example Commands -->
+            <div class="example-commands">
+                <h3>📝 Example Commands:</h3>
+                <ul>
+                    <li>"stop tracking"</li>
+                    <li>"start tracking"</li>
+                    <li>"arm the system"</li>
+                    <li>"disarm the system"</li>
+                    <li>"rotate left"</li>
+                    <li>"rotate right"</li>
+                    <li>"increase altitude"</li>
+                    <li>"decrease altitude"</li>
+                </ul>
+            </div>
+
+            <!-- Output Section -->
+            <div class="output-section">
+                <h2>📊 JSON Output:</h2>
+                <div id="jsonOutput" class="json-output empty">
+                    No command processed yet. Enter a command above and click "Process Command".
+                </div>
+                <button class="copy-btn" id="copyBtn" onclick="copyToClipboard()" style="display: none;">
+                    📋 Copy JSON
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const commandInput = document.getElementById('commandInput');
+        const commandBtn = document.getElementById('commandBtn');
+        const micBtn = document.getElementById('micBtn');
+        const jsonOutput = document.getElementById('jsonOutput');
+        const copyBtn = document.getElementById('copyBtn');
+        const statusBadge = document.getElementById('statusBadge');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        // Web Audio API variables
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let recognitionActive = false;
+
+        // Check browser support for Web Speech API
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition = null;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                recognitionActive = true;
+                micBtn.classList.add('recording');
+                showStatus('listening', 'Listening...');
+                commandInput.placeholder = 'Listening... speak now';
+            };
+
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                }
+                commandInput.value = transcript.toLowerCase();
+            };
+
+            recognition.onerror = (event) => {
+                showError(`Speech recognition error: ${event.error}`);
+                stopMicrophone();
+            };
+
+            recognition.onend = () => {
+                recognitionActive = false;
+                micBtn.classList.remove('recording');
+                statusBadge.style.display = 'none';
+                commandInput.placeholder = 'Enter voice command or click microphone to speak...';
+                
+                // Auto-process if we got a result
+                if (commandInput.value.trim()) {
+                    processCommand();
+                }
+            };
+        }
+
+        function toggleMicrophone() {
+            if (!SpeechRecognition) {
+                showError('Speech Recognition not supported in your browser. Please use Chrome, Edge, or Safari.');
+                return;
+            }
+
+            if (recognitionActive) {
+                stopMicrophone();
+            } else {
+                startMicrophone();
+            }
+        }
+
+        function startMicrophone() {
+            commandInput.value = '';
+            hideMessages();
+            recognition.start();
+        }
+
+        function stopMicrophone() {
+            if (recognition) {
+                recognition.abort();
+            }
+            recognitionActive = false;
+            micBtn.classList.remove('recording');
+            statusBadge.style.display = 'none';
+        }
+
+        // Allow Enter key to process command
+        commandInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                processCommand();
+            }
+        });
+
+        async function processCommand() {
+            const text = commandInput.value.trim();
+
+            if (!text) {
+                showError('Please enter a command');
+                return;
+            }
+
+            showStatus('processing', 'Processing...');
+            commandBtn.disabled = true;
+            hideMessages();
+
+            try {
+                const response = await fetch('/api/process-voice', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    displayOutput(result);
+                    showSuccess(`Command processed: ${result.intent || 'unknown'}`);
+                    showStatus('success', 'Success ✓');
+                } else {
+                    showError(result.message || 'Failed to process command');
+                    showStatus('error', 'Error');
+                }
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+                showStatus('error', 'Error');
+                console.error('Error:', error);
+            } finally {
+                commandBtn.disabled = false;
+            }
+        }
+
+        function displayOutput(data) {
+            jsonOutput.textContent = JSON.stringify(data, null, 2);
+            jsonOutput.classList.remove('empty');
+            copyBtn.style.display = 'inline-block';
+
+            // Highlight syntax (simple approach)
+            highlightJSON();
+        }
+
+        function highlightJSON() {
+            // In a production app, you might use a library like Prism.js
+            // For now, just ensure readability
+            jsonOutput.style.fontFamily = "'Courier New', monospace";
+        }
+
+        function copyToClipboard() {
+            const text = jsonOutput.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showSuccess('JSON copied to clipboard!');
+                setTimeout(() => {
+                    successMessage.classList.remove('show');
+                }, 2000);
+            }).catch(err => {
+                showError('Failed to copy: ' + err);
+            });
+        }
+
+        function clearOutput() {
+            commandInput.value = '';
+            jsonOutput.textContent = 'No command processed yet. Enter a command above and click "Process Command".';
+            jsonOutput.classList.add('empty');
+            copyBtn.style.display = 'none';
+            hideMessages();
+            statusBadge.style.display = 'none';
+            commandInput.focus();
+        }
+
+        function showStatus(type, text) {
+            statusBadge.textContent = text;
+            statusBadge.className = `status-badge ${type}`;
+            statusBadge.style.display = 'inline-block';
+        }
+
+        function showError(message) {
+            errorMessage.textContent = '❌ ' + message;
+            errorMessage.classList.add('show');
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = '✓ ' + message;
+            successMessage.classList.add('show');
+        }
+
+        function hideMessages() {
+            errorMessage.classList.remove('show');
+            successMessage.classList.remove('show');
+        }
+
+        // Load system status on page load
+        async function loadStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const status = await response.json();
+                console.log('System status:', status);
+                
+                // Show warning if Speech Recognition not supported
+                if (!SpeechRecognition) {
+                    showError('💡 Speech Recognition not supported in your browser. Use Chrome, Edge, or Safari for voice commands.');
+                }
+            } catch (error) {
+                console.error('Could not load status:', error);
+            }
+        }
+
+        // Focus input on load
+        window.addEventListener('load', () => {
+            commandInput.focus();
+            loadStatus();
+        });
+
+        // Stop recording when user navigates away
+        window.addEventListener('beforeunload', () => {
+            stopMicrophone();
+        });
+    </script>
+</body>
+</html>

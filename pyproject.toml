@@ -2,20 +2,20 @@
 name = "voice-command-automation"
 version = "1.0.0"
 description = "Production-ready NLP-based voice command automation system for air-borne systems console"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 authors = [{name = "Auto Control Team"}]
 license = {text = "MIT"}
 
 dependencies = [
-    # Speech Recognition
-    "openai-whisper>=20231117",
+    # Speech Recognition (lightweight, CPU-only)
+    "SpeechRecognition>=3.10.0",
+    "pydub>=0.25.1",
     "sounddevice>=0.4.6",
     "soundfile>=0.12.1",
     
-    # NLP & Intent Classification
-    "transformers>=4.36.0",
-    "torch>=2.1.0",
-    "numpy>=1.24.0",
+    # NLP & Intent Classification (lightweight)
+    "scikit-learn>=1.3.0",
+    "numpy>=1.24.0,<2.0",
     "scipy>=1.11.0",
     
     # CLI & Configuration
@@ -24,8 +24,10 @@ dependencies = [
     "pydantic-settings>=2.1.0",
     "python-dotenv>=1.0.0",
     
+    # Web Interface
+    "flask>=2.3.0",
+    
     # Utilities
-    "librosa>=0.10.0",
     "tqdm>=4.66.0",
     "loguru>=0.7.2",
     "pyyaml>=6.0.0",

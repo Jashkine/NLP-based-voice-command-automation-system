@@ -99,6 +99,9 @@ def load_intents_config(config_path: Path) -> Dict[str, IntentPattern]:
         
         intents = {}
         for intent_name, intent_data in data.items():
+            # Add intent name to data if not present
+            if 'intent' not in intent_data:
+                intent_data['intent'] = intent_name
             intents[intent_name] = IntentPattern(**intent_data)
         
         logger.info(f"Loaded {len(intents)} intents from {config_path}")
@@ -109,16 +112,19 @@ def load_intents_config(config_path: Path) -> Dict[str, IntentPattern]:
 
 
 def load_commands_config(config_path: Path) -> Dict[str, CommandMapping]:
-    """Load command mappings from YAML."""
+    """Load commands configuration from YAML."""
     try:
         with open(config_path, 'r') as f:
             data = yaml.safe_load(f) or {}
         
         commands = {}
         for cmd_name, cmd_data in data.items():
+            # Add intent name to data if not present
+            if 'intent' not in cmd_data:
+                cmd_data['intent'] = cmd_name
             commands[cmd_name] = CommandMapping(**cmd_data)
         
-        logger.info(f"Loaded {len(commands)} command mappings from {config_path}")
+        logger.info(f"Loaded {len(commands)} commands from {config_path}")
         return commands
     except FileNotFoundError:
         logger.warning(f"Commands config not found at {config_path}")
